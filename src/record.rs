@@ -12,16 +12,16 @@ pub struct Record {
     // lifetime of the account.
     receipt: Receipt,
     user_id: ARID,
-    payload: Bytes,
+    data: Bytes,
 }
 
 impl Record {
-    pub fn new(user_id: &ARID, payload: &Bytes) -> Self {
-        let receipt = Receipt::new(user_id, payload);
+    pub fn new(user_id: &ARID, data: &Bytes) -> Self {
+        let receipt = Receipt::new(user_id, data);
         Self {
             receipt,
             user_id: user_id.clone(),
-            payload: payload.clone(),
+            data: data.clone(),
         }
     }
 
@@ -33,8 +33,8 @@ impl Record {
         &self.user_id
     }
 
-    pub fn payload(&self) -> &Bytes {
-        &self.payload
+    pub fn data(&self) -> &Bytes {
+        &self.data
     }
 }
 
@@ -56,7 +56,7 @@ impl std::fmt::Debug for Record {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Record")
             .field("user_id", &self.user_id)
-            .field("payload", &HexBytes::new(self.payload.clone()))
+            .field("data", &HexBytes::new(self.data.clone()))
             .field("receipt", &self.receipt)
             .finish()
     }

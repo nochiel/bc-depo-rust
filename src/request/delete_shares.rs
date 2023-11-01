@@ -5,18 +5,18 @@ use bc_envelope::prelude::*;
 
 use crate::receipt::Receipt;
 
-use super::depo_request::DepoRequest;
+use super::DepoRequest;
 
 #[derive(Debug, Clone)]
 pub struct DeleteShares {
-    public_key: PublicKeyBase,
+    key: PublicKeyBase,
     receipts: HashSet<Receipt>,
 }
 
 impl DeleteShares {
-    pub fn new(public_key: PublicKeyBase, receipts: HashSet<Receipt>) -> Self {
+    pub fn new(key: PublicKeyBase, receipts: HashSet<Receipt>) -> Self {
         Self {
-            public_key,
+            key,
             receipts,
         }
     }
@@ -24,15 +24,19 @@ impl DeleteShares {
     pub fn receipts(&self) -> &HashSet<Receipt> {
         &self.receipts
     }
+
+    fn receipt_param() -> Parameter {
+        Parameter::new_named("receipt")
+    }
 }
 
 impl EnvelopeEncodable for DeleteShares {
     fn envelope(self) -> Envelope {
-        let mut e = Envelope::new_function("storeShare")
-            .add_parameter("publicKey", self.public_key);
+        let mut e = Envelope::new_function(Self::function())
+            .add_parameter(Self::key_param(), self.key);
 
         for receipt in self.receipts {
-            e = e.add_parameter("receipt", receipt);
+            e = e.add_parameter(Self::receipt_param(), receipt);
         }
 
         e
@@ -48,8 +52,8 @@ impl From<DeleteShares> for Envelope {
 impl EnvelopeDecodable for DeleteShares {
     fn from_envelope(envelope: Envelope) -> anyhow::Result<Self> {
         envelope.check_function(&Self::function())?;
-        let public_key: PublicKeyBase = envelope.extract_object_for_parameter("publicKey")?;
-        let receipts = envelope.objects_for_parameter("receipt")
+        let public_key: PublicKeyBase = envelope.extract_object_for_parameter(Self::key_param())?;
+        let receipts = envelope.objects_for_parameter(Self::receipt_param())
             .into_iter()
             .map(|e| e.try_into())
             .collect::<anyhow::Result<HashSet<Receipt>>>()?;
@@ -74,7 +78,7 @@ impl RequestBody for DeleteShares {
 }
 
 impl DepoRequest for DeleteShares {
-    fn public_key(&self) -> &PublicKeyBase {
-        &self.public_key
+    fn key(&self) -> &PublicKeyBase {
+        &self.key
     }
 }

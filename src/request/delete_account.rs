@@ -1,25 +1,25 @@
 use bc_components::PublicKeyBase;
 use bc_envelope::prelude::*;
 
-use super::depo_request::DepoRequest;
+use super::DepoRequest;
 
 #[derive(Debug, Clone)]
 pub struct DeleteAccount {
-    public_key: PublicKeyBase,
+    key: PublicKeyBase,
 }
 
 impl DeleteAccount {
-    pub fn new(public_key: PublicKeyBase) -> Self {
+    pub fn new(key: PublicKeyBase) -> Self {
         Self {
-            public_key,
+            key,
         }
     }
 }
 
 impl EnvelopeEncodable for DeleteAccount {
     fn envelope(self) -> Envelope {
-        Envelope::new_function("storeShare")
-            .add_parameter("publicKey", self.public_key)
+        Envelope::new_function(Self::function())
+            .add_parameter(Self::key_param(), self.key)
     }
 }
 
@@ -32,7 +32,7 @@ impl From<DeleteAccount> for Envelope {
 impl EnvelopeDecodable for DeleteAccount {
     fn from_envelope(envelope: Envelope) -> anyhow::Result<Self> {
         envelope.check_function(&Self::function())?;
-        let public_key: PublicKeyBase = envelope.extract_object_for_parameter("publicKey")?;
+        let public_key: PublicKeyBase = envelope.extract_object_for_parameter(Self::key_param())?;
         Ok(Self::new(public_key))
     }
 }
@@ -54,7 +54,7 @@ impl RequestBody for DeleteAccount {
 }
 
 impl DepoRequest for DeleteAccount {
-    fn public_key(&self) -> &PublicKeyBase {
-        &self.public_key
+    fn key(&self) -> &PublicKeyBase {
+        &self.key
     }
 }

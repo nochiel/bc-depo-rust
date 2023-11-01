@@ -2,28 +2,32 @@ use bc_components::PublicKeyBase;
 use bc_envelope::prelude::*;
 use bytes::Bytes;
 
-use super::depo_request::DepoRequest;
+use super::DepoRequest;
 
 #[derive(Debug, Clone)]
 pub struct StoreShare {
-    public_key: PublicKeyBase,
-    payload: Bytes,
+    key: PublicKeyBase,
+    data: Bytes,
 }
 
 impl StoreShare {
-    pub fn new(public_key: PublicKeyBase, payload: Bytes) -> Self {
+    pub fn new(key: PublicKeyBase, data: Bytes) -> Self {
         Self {
-            public_key,
-            payload,
+            key,
+            data,
         }
+    }
+
+    fn data_param() -> Parameter {
+        Parameter::new_named("data")
     }
 }
 
 impl EnvelopeEncodable for StoreShare {
     fn envelope(self) -> Envelope {
-        Envelope::new_function("storeShare")
-            .add_parameter("publicKey", self.public_key)
-            .add_parameter("payload", self.payload)
+        Envelope::new_function(Self::function())
+            .add_parameter(Self::key_param(), self.key)
+            .add_parameter(Self::data_param(), self.data)
     }
 }
 
@@ -36,9 +40,9 @@ impl From<StoreShare> for Envelope {
 impl EnvelopeDecodable for StoreShare {
     fn from_envelope(envelope: Envelope) -> anyhow::Result<Self> {
         envelope.check_function(&Self::function())?;
-        let public_key: PublicKeyBase = envelope.extract_object_for_parameter("publicKey")?;
-        let payload = envelope.extract_object_for_parameter("payload")?;
-        Ok(Self::new(public_key, payload))
+        let public_key: PublicKeyBase = envelope.extract_object_for_parameter(Self::key_param())?;
+        let data = envelope.extract_object_for_parameter(Self::data_param())?;
+        Ok(Self::new(public_key, data))
     }
 }
 
@@ -59,8 +63,8 @@ impl RequestBody for StoreShare {
 }
 
 impl DepoRequest for StoreShare {
-    fn public_key(&self) -> &PublicKeyBase {
-        &self.public_key
+    fn key(&self) -> &PublicKeyBase {
+        &self.key
     }
 }
 
@@ -75,14 +79,14 @@ mod tests {
     fn test_store_share_request() {
         let client_private_key = PrivateKeyBase::new();
         let client_public_key = client_private_key.public_keys();
-        let payload = Bytes::from_static(b"payload");
-        let request_body = StoreShare::new(client_public_key.clone(), payload);
+        let data = Bytes::from_static(b"data");
+        let request_body = StoreShare::new(client_public_key.clone(), data);
         let envelope = request_body.clone().envelope();
         assert_eq!(envelope.format(),
             indoc! {r#"
             «"storeShare"» [
-                ❰"payload"❱: Bytes(7)
-                ❰"publicKey"❱: PublicKeyBase
+                ❰"data"❱: Bytes(4)
+                ❰"key"❱: PublicKeyBase
             ]
             "#}.trim()
         );
@@ -94,8 +98,8 @@ mod tests {
             indoc! {r#"
             request(ARID(8712dfac)) [
                 'body': «"storeShare"» [
-                    ❰"payload"❱: Bytes(7)
-                    ❰"publicKey"❱: PublicKeyBase
+                    ❰"data"❱: Bytes(4)
+                    ❰"key"❱: PublicKeyBase
                 ]
                 'date': 2023-10-28T07:59:43Z
                 'note': "This is the note."
@@ -121,8 +125,8 @@ mod tests {
             indoc! {r#"
             request(ARID(8712dfac)) [
                 'body': «"storeShare"» [
-                    ❰"payload"❱: Bytes(7)
-                    ❰"publicKey"❱: PublicKeyBase
+                    ❰"data"❱: Bytes(4)
+                    ❰"key"❱: PublicKeyBase
                 ]
                 'date': 2023-10-28T07:59:43Z
                 'note': "This is the note."

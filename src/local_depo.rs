@@ -71,15 +71,15 @@ pub trait LocalDepo {
     }
 
     /// This is a Trust-On-First-Use (TOFU) function. If the provided public key is not
-    /// recognized, then a new account is created and the provided payload is stored in
+    /// recognized, then a new account is created and the provided data is stored in
     /// it. It is also used to add additional shares to an existing account. Adding an
     /// already existing share to an account is idempotent.
-    async fn store_share(&self, key: &PublicKeyBase, payload: &Bytes) -> anyhow::Result<Receipt> {
+    async fn store_share(&self, key: &PublicKeyBase, data: &Bytes) -> anyhow::Result<Receipt> {
         let user = self.key_to_user(key).await?;
-        if payload.len() > self.max_payload_size() {
-            bail!("payload too large");
+        if data.len() > self.max_payload_size() {
+            bail!("data too large");
         }
-        let record = Record::new(user.user_id(), payload);
+        let record = Record::new(user.user_id(), data);
         self.insert_record(&record).await?;
         Ok(record.receipt().clone())
     }
@@ -98,7 +98,7 @@ pub trait LocalDepo {
         let records = self.records_for_id_and_receipts(user.user_id(), &receipts).await?;
         let mut result = HashMap::new();
         for record in records {
-            result.insert(record.receipt().clone(), record.payload().clone());
+            result.insert(record.receipt().clone(), record.data().clone());
         }
         Ok(result)
     }

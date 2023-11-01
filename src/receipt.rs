@@ -5,8 +5,8 @@ use bc_envelope::prelude::*;
 pub struct Receipt(Digest);
 
 impl Receipt {
-    pub fn new(user_id: &ARID, payload: impl AsRef<[u8]>) -> Self {
-        Self(Digest::from_image_parts(&[user_id.data(), payload.as_ref()]))
+    pub fn new(user_id: &ARID, data: impl AsRef<[u8]>) -> Self {
+        Self(Digest::from_image_parts(&[user_id.data(), data.as_ref()]))
     }
 }
 
@@ -66,11 +66,11 @@ mod tests {
     #[test]
     fn test_receipt() {
         let user_id = ARID::from_data_ref(hex!("3eadf5bf7a4da69f824be029d2d0ece06fcb3aca7dd85d402b661f7b48f18294")).unwrap();
-        let receipt = Receipt::new(&user_id, b"payload");
-        assert_eq!(format!("{:?}", receipt), "Receipt(910b1858d811212852f17df36d796dc588a3fd2984457edb3baeb83baa3cf87a)");
+        let receipt = Receipt::new(&user_id, b"data");
+        assert_eq!(format!("{:?}", receipt), "Receipt(12bd077763220d3223f6cd74f4d51103f29c7ba70b68765cd8ee13c84ee50152)");
 
         let envelope = receipt.clone().envelope();
-        assert_eq!(format!("{}", envelope.ur_string()), "ur:envelope/lftpcshdcxmebdcshdtpbycldegmwnkiwfjnkkjnsklootzcdtlrfekbuyfrplrofrpkfnyaknoyadtpcsiojpihiaihinjojyetgufwao");
+        assert_eq!(format!("{}", envelope.ur_string()), "ur:envelope/lftpcshdcxbgryatktiacpbteycnynsnjywktlbyaxwznskgosbdiskohhtpwybwspglvwadgmoyadtpcsiojpihiaihinjojytykglems");
         assert_eq!(envelope.format(),
         indoc!{r#"
         Bytes(32) [
