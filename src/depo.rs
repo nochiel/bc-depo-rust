@@ -46,6 +46,19 @@ impl Depo {
         Ok(result)
     }
 
+    /// Returns a single share corresponding to the provided receipt. Attempting to
+    /// retrieve a nonexistent receipt or a receipt from the wrong account is an error.
+    pub async fn get_share(&self, key: &PublicKeyBase, receipt: &Receipt) -> anyhow::Result<Bytes> {
+        let mut receipts = HashSet::new();
+        receipts.insert(receipt.clone());
+        let result = self.get_shares(key, &receipts).await?;
+        let result = match result.get(receipt) {
+            Some(result) => result.clone(),
+            None => bail!("unknown receipt"),
+        };
+        Ok(result)
+    }
+
     /// Deletes either a subset of shares a user controls, or all the shares if a
     /// subset of receipts is not provided. Deletes are idempotent; in other words,
     /// deleting nonexistent shares is not an error.
@@ -57,8 +70,19 @@ impl Depo {
             receipts.clone()
         };
         for receipt in recpts {
-            self.0.delete_record(&receipt).await?;
+            if self.0.receipt_to_record(&receipt).await?.is_some() {
+                self.0.delete_record(&receipt).await?;
+            }
         }
+        Ok(())
+    }
+
+    /// Deletes a single share a user controls. Deletes are idempotent; in other words,
+    /// deleting a nonexistent share is not an error.
+    pub async fn delete_share(&self, key: &PublicKeyBase, receipt: &Receipt) -> anyhow::Result<()> {
+        let mut receipts = HashSet::new();
+        receipts.insert(receipt.clone());
+        self.delete_shares(key, &receipts).await?;
         Ok(())
     }
 
@@ -78,9 +102,10 @@ impl Depo {
     /// as the recovery contact method. Deleting an account is idempotent; in other words,
     /// deleting a nonexistent account is not an error.
     pub async fn delete_account(&self, key: &PublicKeyBase) -> anyhow::Result<()> {
-        let user = self.0.expect_key_to_user(key).await?;
-        self.delete_shares(key, &HashSet::new()).await?;
-        self.0.remove_user(&user).await?;
+        if let Some(user) = self.0.existing_key_to_user(key).await? {
+            self.delete_shares(key, &HashSet::new()).await?;
+            self.0.remove_user(&user).await?;
+        }
         Ok(())
     }
 
@@ -92,7 +117,7 @@ impl Depo {
     /// contact method is deleted.
     pub async fn update_recovery(&self, key: &PublicKeyBase, recovery: Option<&str>) -> anyhow::Result<()> {
         let user = self.0.expect_key_to_user(key).await?;
-        // Recoverys must be unique
+        // Recovery methods must be unique
         if let Some(non_opt_recovery) = recovery {
             let existing_recovery_user = self.0.recovery_to_user(non_opt_recovery).await?;
             if let Some(existing_recovery_user) = existing_recovery_user {
@@ -123,11 +148,11 @@ impl Depo {
     /// request is not confirmed by a set amount of time, then the change is not
     /// made.
     ///
-    /// Recoverys must be unique. Examples of possible recoverys some sort of
-    /// username, real name, or other unique identifier, paired with an email
-    /// addresses, phone number, list of security questions, two-factor
-    /// authentication key for time-based one-time passwords, list of trusted
-    /// devices for 2FA, or similar.
+    /// Recovery methods must be unique. Examples of possible recovery methods
+    /// include some sort of username, real name, or other unique identifier,
+    /// paired with an email addresses, phone number, list of security
+    /// questions, two-factor authentication key for time-based one-time
+    /// passwords, list of trusted devices for 2FA, or similar.
     ///
     /// Returns a continuation, which is a token that can be used to complete
     /// the reset.

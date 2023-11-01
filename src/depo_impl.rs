@@ -17,7 +17,7 @@ pub trait DepoImpl {
     async fn insert_user(&self, user: &User) -> anyhow::Result<()>;
     async fn insert_record(&self, record: &Record) -> anyhow::Result<()>;
     async fn id_to_receipts(&self, user_id: &ARID) -> anyhow::Result<HashSet<Receipt>>;
-    async fn receipt_to_record(&self, receipt: &Receipt) -> anyhow::Result<Record>;
+    async fn receipt_to_record(&self, receipt: &Receipt) -> anyhow::Result<Option<Record>>;
     async fn delete_record(&self, receipt: &Receipt) -> anyhow::Result<()>;
     async fn set_user_key(&self, old_key: &PublicKeyBase, new_key: &PublicKeyBase) -> anyhow::Result<()>;
     async fn set_user_recovery(&self, user: &User, recovery: Option<&str>) -> anyhow::Result<()>;
@@ -29,10 +29,11 @@ pub trait DepoImpl {
         let user_receipts = self.id_to_receipts(user_id).await?;
         for receipt in recipts {
             if !user_receipts.contains(receipt) {
-                bail!("unknown receipt");
+                continue;
             }
-            let record = self.receipt_to_record(receipt).await?;
-            result.push(record.clone());
+            if let Some(record) = self.receipt_to_record(receipt).await? {
+                result.push(record.clone());
+            }
         }
         Ok(result)
     }
