@@ -1,9 +1,10 @@
 pub mod question;
 pub mod receipt;
-pub mod store;
-pub mod mem_store;
+pub mod local_store;
+pub mod local_store_mem;
 pub mod user;
 pub mod record;
+pub mod request;
 
 use std::str::FromStr;
 
