@@ -15,7 +15,7 @@ struct Inner {
     id_to_receipts: HashMap<ARID, HashSet<Receipt>>,
 }
 
-pub struct MemDepoImpl {
+struct MemDepoImpl {
     private_key: PrivateKeyBase,
     public_key: PublicKeyBase,
     inner: RwLock<Inner>,
@@ -25,7 +25,7 @@ impl MemDepoImpl {
     const MAX_PAYLOAD_SIZE: usize = 1000;
     const CONTINUATION_EXPIRY_SECONDS: f64 = 60.0 * 60.0 * 24.0;
 
-    pub fn new() -> Box<Self> {
+    fn new() -> Box<Self> {
         let private_key = PrivateKeyBase::new();
         let public_key = private_key.public_keys();
         Box::new(Self {
