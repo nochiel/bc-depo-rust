@@ -8,12 +8,12 @@ use crate::receipt::Receipt;
 use super::depo_request::DepoRequest;
 
 #[derive(Debug, Clone)]
-pub struct DeleteShares {
+pub struct GetShares {
     public_key: PublicKeyBase,
     receipts: HashSet<Receipt>,
 }
 
-impl DeleteShares {
+impl GetShares {
     pub fn new(public_key: PublicKeyBase, receipts: HashSet<Receipt>) -> Self {
         Self {
             public_key,
@@ -26,7 +26,7 @@ impl DeleteShares {
     }
 }
 
-impl EnvelopeEncodable for DeleteShares {
+impl EnvelopeEncodable for GetShares {
     fn envelope(self) -> Envelope {
         let mut e = Envelope::new_function("storeShare")
             .add_parameter("publicKey", self.public_key);
@@ -39,13 +39,13 @@ impl EnvelopeEncodable for DeleteShares {
     }
 }
 
-impl From<DeleteShares> for Envelope {
-    fn from(request: DeleteShares) -> Self {
+impl From<GetShares> for Envelope {
+    fn from(request: GetShares) -> Self {
         request.envelope()
     }
 }
 
-impl EnvelopeDecodable for DeleteShares {
+impl EnvelopeDecodable for GetShares {
     fn from_envelope(envelope: Envelope) -> anyhow::Result<Self> {
         envelope.check_function(&Self::function())?;
         let public_key: PublicKeyBase = envelope.extract_object_for_parameter("publicKey")?;
@@ -57,7 +57,7 @@ impl EnvelopeDecodable for DeleteShares {
     }
 }
 
-impl TryFrom<Envelope> for DeleteShares {
+impl TryFrom<Envelope> for GetShares {
     type Error = anyhow::Error;
 
     fn try_from(envelope: Envelope) -> Result<Self, Self::Error> {
@@ -65,15 +65,15 @@ impl TryFrom<Envelope> for DeleteShares {
     }
 }
 
-impl EnvelopeCodable for DeleteShares {}
+impl EnvelopeCodable for GetShares {}
 
-impl RequestBody for DeleteShares {
+impl RequestBody for GetShares {
     fn function() -> Function {
-        Function::new_named("deleteShares")
+        Function::new_named("getShares")
     }
 }
 
-impl DepoRequest for DeleteShares {
+impl DepoRequest for GetShares {
     fn public_key(&self) -> &PublicKeyBase {
         &self.public_key
     }

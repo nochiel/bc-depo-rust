@@ -1,7 +1,7 @@
 pub mod question;
 pub mod receipt;
-pub mod local_store;
-pub mod local_store_mem;
+pub mod local_depo;
+pub mod mem_local_depo;
 pub mod user;
 pub mod record;
 pub mod request;

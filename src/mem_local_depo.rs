@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use bc_components::{PublicKeyBase, PrivateKeyBase, ARID};
 use tokio::sync::RwLock;
 
-use crate::{local_store::LocalStore, receipt::Receipt, user::User, record::Record};
+use crate::{local_depo::LocalDepo, receipt::Receipt, user::User, record::Record};
 
 struct Inner {
     id_to_user: HashMap<ARID, User>,
@@ -15,13 +15,13 @@ struct Inner {
     id_to_receipts: HashMap<ARID, HashSet<Receipt>>,
 }
 
-pub struct LocalStoreMem {
+pub struct MemLocalDepo {
     private_key: PrivateKeyBase,
     public_key: PublicKeyBase,
     inner: RwLock<Inner>,
 }
 
-impl LocalStoreMem {
+impl MemLocalDepo {
     const MAX_PAYLOAD_SIZE: usize = 1000;
     const CONTINUATION_EXPIRY_SECONDS: f64 = 60.0 * 60.0 * 24.0;
 
@@ -42,13 +42,13 @@ impl LocalStoreMem {
     }
 }
 
-impl Default for LocalStoreMem {
+impl Default for MemLocalDepo {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl std::fmt::Debug for LocalStoreMem {
+impl std::fmt::Debug for MemLocalDepo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.inner.try_read() {
             Ok(read) => {
@@ -65,7 +65,7 @@ impl std::fmt::Debug for LocalStoreMem {
 }
 
 #[async_trait]
-impl LocalStore for LocalStoreMem {
+impl LocalDepo for MemLocalDepo {
     fn max_payload_size(&self) -> usize {
         Self::MAX_PAYLOAD_SIZE
     }
@@ -82,7 +82,7 @@ impl LocalStore for LocalStoreMem {
         &self.public_key
     }
 
-    async fn existing_public_key_to_id(&self, public_key: &PublicKeyBase) -> anyhow::Result<Option<ARID>> {
+    async fn existing_key_to_id(&self, public_key: &PublicKeyBase) -> anyhow::Result<Option<ARID>> {
         Ok(self.inner.read().await.public_key_to_id.get(public_key).cloned())
     }
 
@@ -128,8 +128,8 @@ impl LocalStore for LocalStoreMem {
         Ok(())
     }
 
-    async fn set_user_public_key(&self, old_public_key: &PublicKeyBase, new_public_key: &PublicKeyBase) -> anyhow::Result<()> {
-        let user = self.expect_public_key_to_user(old_public_key).await?;
+    async fn set_user_key(&self, old_public_key: &PublicKeyBase, new_public_key: &PublicKeyBase) -> anyhow::Result<()> {
+        let user = self.expect_key_to_user(old_public_key).await?;
         let mut write = self.inner.write().await;
         write.public_key_to_id.remove(old_public_key);
         write.public_key_to_id.insert(new_public_key.clone(), user.user_id().clone());
