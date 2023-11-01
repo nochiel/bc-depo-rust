@@ -4,19 +4,19 @@ use bc_components::{PublicKeyBase, ARID};
 pub struct User {
     user_id: ARID,
     public_key: PublicKeyBase,
-    fallback: Option<String>,
+    recovery: Option<String>,
 }
 
 impl User {
     pub fn new(user_id: ARID, public_key: PublicKeyBase) -> Self {
-        Self::new_with_fallback(user_id, public_key, None)
+        Self::new_with_recovery(user_id, public_key, None)
     }
 
-    pub fn new_with_fallback(user_id: ARID, public_key: PublicKeyBase, fallback: Option<String>) -> Self {
+    pub fn new_with_recovery(user_id: ARID, public_key: PublicKeyBase, recovery: Option<String>) -> Self {
         Self {
             user_id,
             public_key,
-            fallback,
+            recovery,
         }
     }
 
@@ -32,12 +32,12 @@ impl User {
         self.public_key = public_key;
     }
 
-    pub fn fallback(&self) -> Option<&str> {
-        self.fallback.as_deref()
+    pub fn recovery(&self) -> Option<&str> {
+        self.recovery.as_deref()
     }
 
-    pub fn set_fallback(&mut self, fallback: Option<&str>) {
-        self.fallback = fallback.map(str::to_owned);
+    pub fn set_recovery(&mut self, recovery: Option<&str>) {
+        self.recovery = recovery.map(str::to_owned);
     }
 }
 

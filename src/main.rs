@@ -5,6 +5,7 @@ pub mod mem_local_depo;
 pub mod user;
 pub mod record;
 pub mod request;
+pub mod recovery_continuation;
 
 use std::str::FromStr;
 

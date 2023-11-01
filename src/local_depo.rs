@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use bc_components::{PublicKeyBase, ARID, PrivateKeyBase};
 use bytes::Bytes;
 
-use crate::{receipt::Receipt, user::User, record::Record};
+use crate::{receipt::Receipt, user::User, record::Record, recovery_continuation::RecoveryContinuation};
 
 #[async_trait]
 pub trait LocalDepo {
@@ -21,9 +21,9 @@ pub trait LocalDepo {
     async fn receipt_to_record(&self, receipt: &Receipt) -> anyhow::Result<Record>;
     async fn delete_record(&self, receipt: &Receipt) -> anyhow::Result<()>;
     async fn set_user_key(&self, old_key: &PublicKeyBase, new_key: &PublicKeyBase) -> anyhow::Result<()>;
-    async fn set_user_fallback(&self, user: &User, fallback: Option<&str>) -> anyhow::Result<()>;
+    async fn set_user_recovery(&self, user: &User, recovery: Option<&str>) -> anyhow::Result<()>;
     async fn remove_user(&self, user: &User) -> anyhow::Result<()>;
-    async fn fallback_to_user(&self, fallback: &str) -> anyhow::Result<Option<User>>;
+    async fn recovery_to_user(&self, recovery: &str) -> anyhow::Result<Option<User>>;
 
     async fn records_for_id_and_receipts(&self, user_id: &ARID, recipts: &HashSet<Receipt>) -> anyhow::Result<Vec<Record>> {
         let mut result = Vec::new();
@@ -121,7 +121,7 @@ pub trait LocalDepo {
 
     /// Changes the public key used as the account identifier. It could be invoked
     /// specifically because a user requests it, in which case they will need to know
-    /// their old public key, or it could be invoked because they used their fallback
+    /// their old public key, or it could be invoked because they used their recovery
     /// contact method to request a transfer token that encodes their old public key.
     async fn update_key(&self, old_key: &PublicKeyBase, new_key: &PublicKeyBase) -> anyhow::Result<()> {
         if self.existing_key_to_id(new_key).await?.is_some() {
@@ -132,7 +132,7 @@ pub trait LocalDepo {
     }
 
     /// Deletes all the shares of an account and any other data associated with it, such
-    /// as the fallback contact method. Deleting an account is idempotent; in other words,
+    /// as the recovery contact method. Deleting an account is idempotent; in other words,
     /// deleting a nonexistent account is not an error.
     async fn delete_account(&self, key: &PublicKeyBase) -> anyhow::Result<()> {
         let user = self.expect_key_to_user(key).await?;
@@ -141,46 +141,46 @@ pub trait LocalDepo {
         Ok(())
     }
 
-    /// Updates an account's fallback contact method, which could be a phone
-    /// number, email address, or similar. The fallback is used to give users a
+    /// Updates an account's recovery contact method, which could be a phone
+    /// number, email address, or similar. The recovery is used to give users a
     /// way to change their public key in the event they lose it. It is up to
-    /// the implementer to validate the fallback contact method before letting
-    /// the public key be changed. If the fallback is `None`, then the fallback
+    /// the implementer to validate the recovery contact method before letting
+    /// the public key be changed. If the recovery is `None`, then the recovery
     /// contact method is deleted.
-    async fn update_fallback(&self, key: &PublicKeyBase, fallback: Option<&str>) -> anyhow::Result<()> {
+    async fn update_recovery(&self, key: &PublicKeyBase, recovery: Option<&str>) -> anyhow::Result<()> {
         let user = self.expect_key_to_user(key).await?;
-        // Fallbacks must be unique
-        if let Some(non_opt_fallback) = fallback {
-            let existing_fallback_user = self.fallback_to_user(non_opt_fallback).await?;
-            if let Some(existing_fallback_user) = existing_fallback_user {
-                if existing_fallback_user.user_id() != user.user_id() {
-                    bail!("fallback already in use");
+        // Recoverys must be unique
+        if let Some(non_opt_recovery) = recovery {
+            let existing_recovery_user = self.recovery_to_user(non_opt_recovery).await?;
+            if let Some(existing_recovery_user) = existing_recovery_user {
+                if existing_recovery_user.user_id() != user.user_id() {
+                    bail!("recovery already in use");
                 } else {
-                    // The user is already using this fallback, so we can just return
+                    // The user is already using this recovery, so we can just return
                     // (idempotency)
                     return Ok(());
                 }
             }
         }
-        self.set_user_fallback(&user, fallback).await?;
+        self.set_user_recovery(&user, recovery).await?;
         Ok(())
     }
 
-    /// Retrieves an account's fallback contact method, if any.
-    async fn get_fallback(&self, key: &PublicKeyBase) -> anyhow::Result<Option<String>> {
+    /// Retrieves an account's recovery contact method, if any.
+    async fn get_recovery(&self, key: &PublicKeyBase) -> anyhow::Result<Option<String>> {
         let user = self.expect_key_to_user(key).await?;
-        let fallback = user.fallback().map(|s| s.to_string());
-        Ok(fallback)
+        let recovery = user.recovery().map(|s| s.to_string());
+        Ok(recovery)
     }
 
     /// Requests a reset of the account's public key without knowing the current
-    /// one. The account must have a validated fallback contact method that
+    /// one. The account must have a validated recovery contact method that
     /// matches the one provided. The depository owner needs to then contact the
-    /// user via their fallback contact method to confirm the change. If the
+    /// user via their recovery contact method to confirm the change. If the
     /// request is not confirmed by a set amount of time, then the change is not
     /// made.
     ///
-    /// Fallbacks must be unique. Examples of possible fallbacks some sort of
+    /// Recoverys must be unique. Examples of possible recoverys some sort of
     /// username, real name, or other unique identifier, paired with an email
     /// addresses, phone number, list of security questions, two-factor
     /// authentication key for time-based one-time passwords, list of trusted
@@ -188,20 +188,20 @@ pub trait LocalDepo {
     ///
     /// Returns a continuation, which is a token that can be used to complete
     /// the reset.
-    async fn start_fallback_transfer(&self, fallback: &str, new_key: &PublicKeyBase) -> anyhow::Result<FallbackContinuation> {
-        // First find the user for the fallback.
-        let user = self.fallback_to_user(fallback).await?;
-        // If no fallback was found return an error.
+    async fn start_recovery_transfer(&self, recovery: &str, new_key: &PublicKeyBase) -> anyhow::Result<RecoveryContinuation> {
+        // First find the user for the recovery.
+        let user = self.recovery_to_user(recovery).await?;
+        // If no recovery was found return an error.
         let user = match user {
             Some(user) => user,
-            None => bail!("unknown fallback"),
+            None => bail!("unknown recovery"),
         };
         // Ensure there is no account with the new public key
         let existing_user = self.existing_key_to_id(new_key).await?;
         if existing_user.is_some() {
             bail!("public key already in use");
         }
-        Ok(FallbackContinuation::new(
+        Ok(RecoveryContinuation::new(
             user.public_key().clone(),
             new_key.clone(),
             dcbor::Date::now() + self.continuation_expiry_seconds()
@@ -209,8 +209,8 @@ pub trait LocalDepo {
     }
 
     /// Completes a reset of the account's public key. This is called after the
-    /// user has confirmed the change via their fallback contact method.
-    async fn finish_fallback_transfer(&self, continuation: &FallbackContinuation) -> anyhow::Result<()> {
+    /// user has confirmed the change via their recovery contact method.
+    async fn finish_recovery_transfer(&self, continuation: &RecoveryContinuation) -> anyhow::Result<()> {
         // Ensure the continuation is valid
         let seconds_until_expiry = continuation.expiry().clone() - dcbor::Date::now();
         if seconds_until_expiry < 0.0 {
@@ -219,34 +219,5 @@ pub trait LocalDepo {
         // Set the user's public key to the new public key
         self.set_user_key(continuation.old_key(), continuation.new_key()).await?;
         Ok(())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct FallbackContinuation {
-    pub old_key: PublicKeyBase,
-    pub new_key: PublicKeyBase,
-    pub expiry: dcbor::Date,
-}
-
-impl FallbackContinuation {
-    pub fn new(old_key: PublicKeyBase, new_key: PublicKeyBase, expiry: dcbor::Date) -> Self {
-        Self {
-            old_key,
-            new_key,
-            expiry,
-        }
-    }
-
-    pub fn old_key(&self) -> &PublicKeyBase {
-        &self.old_key
-    }
-
-    pub fn new_key(&self) -> &PublicKeyBase {
-        &self.new_key
-    }
-
-    pub fn expiry(&self) -> &dcbor::Date {
-        &self.expiry
     }
 }

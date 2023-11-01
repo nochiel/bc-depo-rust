@@ -6,7 +6,8 @@ pub mod delete_shares;
 pub mod delete_account;
 pub mod get_shares;
 pub mod update_key;
-pub mod update_fallback;
+pub mod update_recovery;
+pub mod get_recovery;
 
 pub trait DepoRequest: RequestBody {
     fn key(&self) -> &PublicKeyBase;

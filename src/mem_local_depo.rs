@@ -9,7 +9,7 @@ use crate::{local_depo::LocalDepo, receipt::Receipt, user::User, record::Record}
 
 struct Inner {
     id_to_user: HashMap<ARID, User>,
-    fallback_to_id: HashMap<String, ARID>,
+    recovery_to_id: HashMap<String, ARID>,
     public_key_to_id: HashMap<PublicKeyBase, ARID>,
     receipt_to_record: HashMap<Receipt, Record>,
     id_to_receipts: HashMap<ARID, HashSet<Receipt>>,
@@ -33,7 +33,7 @@ impl MemLocalDepo {
             public_key,
             inner: RwLock::new(Inner {
                 id_to_user: HashMap::new(),
-                fallback_to_id: HashMap::new(),
+                recovery_to_id: HashMap::new(),
                 public_key_to_id: HashMap::new(),
                 receipt_to_record: HashMap::new(),
                 id_to_receipts: HashMap::new(),
@@ -138,26 +138,26 @@ impl LocalDepo for MemLocalDepo {
         Ok(())
     }
 
-    async fn set_user_fallback(&self, user: &User, fallback: Option<&str>) -> anyhow::Result<()> {
+    async fn set_user_recovery(&self, user: &User, recovery: Option<&str>) -> anyhow::Result<()> {
         let mut write = self.inner.write().await;
 
-        // get the user's existing fallback
-        let old_fallback = user.fallback();
-        // if the new and old fallbacks are the same, return (idempotency)
-        if old_fallback == fallback {
+        // get the user's existing recovery
+        let old_recovery = user.recovery();
+        // if the new and old recoverys are the same, return (idempotency)
+        if old_recovery == recovery {
             return Ok(());
         }
-        // Remove the old fallback, if any
-        if let Some(old_fallback) = old_fallback {
-            write.fallback_to_id.remove(old_fallback);
+        // Remove the old recovery, if any
+        if let Some(old_recovery) = old_recovery {
+            write.recovery_to_id.remove(old_recovery);
         }
-        // Add the new fallback, if any
-        if let Some(fallback) = fallback {
-            write.fallback_to_id.insert(fallback.to_string(), user.user_id().clone());
+        // Add the new recovery, if any
+        if let Some(recovery) = recovery {
+            write.recovery_to_id.insert(recovery.to_string(), user.user_id().clone());
         }
-        // Set the user record to the new fallback
+        // Set the user record to the new recovery
         let user = write.id_to_user.get_mut(user.user_id()).unwrap();
-        user.set_fallback(fallback);
+        user.set_recovery(recovery);
         Ok(())
     }
 
@@ -165,17 +165,17 @@ impl LocalDepo for MemLocalDepo {
         let mut write = self.inner.write().await;
 
         write.public_key_to_id.remove(user.public_key());
-        write.fallback_to_id.remove(user.fallback().unwrap_or_default());
+        write.recovery_to_id.remove(user.recovery().unwrap_or_default());
         write.id_to_user.remove(user.user_id());
         write.id_to_receipts.remove(user.user_id());
         Ok(())
     }
 
-    async fn fallback_to_user(&self, fallback: &str) -> anyhow::Result<Option<User>> {
+    async fn recovery_to_user(&self, recovery: &str) -> anyhow::Result<Option<User>> {
         let read = self.inner.read().await;
-        let user_id = read.fallback_to_id
-            .get(fallback)
-            .map_or(Err(anyhow::anyhow!("unknown fallback")), Ok)?;
+        let user_id = read.recovery_to_id
+            .get(recovery)
+            .map_or(Err(anyhow::anyhow!("unknown recovery")), Ok)?;
         let user = self.existing_id_to_user(user_id).await?;
         Ok(user)
     }
