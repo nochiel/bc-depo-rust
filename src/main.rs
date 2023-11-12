@@ -1,12 +1,9 @@
 pub mod question;
-pub mod receipt;
-pub mod depo_impl;
-pub mod mem_depo;
-pub mod user;
-pub mod record;
-pub mod request;
-pub mod recovery_continuation;
-pub mod depo;
+// pub mod depo_impl;
+// pub mod mem_depo;
+// pub mod user;
+// pub mod record;
+// pub mod recovery_continuation;
 
 use std::str::FromStr;
 

@@ -3,7 +3,7 @@ use std::fmt::Formatter;
 use bc_components::ARID;
 use bytes::Bytes;
 
-use crate::receipt::Receipt;
+use depo_api::receipt::Receipt;
 
 #[derive(Clone)]
 pub struct Record {

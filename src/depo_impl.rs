@@ -3,8 +3,9 @@ use std::collections::HashSet;
 use anyhow::bail;
 use async_trait::async_trait;
 use bc_components::{PublicKeyBase, ARID, PrivateKeyBase};
+use depo_api::receipt::Receipt;
 
-use crate::{receipt::Receipt, user::User, record::Record};
+use crate::{user::User, record::Record};
 
 #[async_trait]
 pub trait DepoImpl {

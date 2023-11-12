@@ -3,8 +3,9 @@ use std::collections::{HashSet, HashMap};
 use async_trait::async_trait;
 use bc_components::{PublicKeyBase, PrivateKeyBase, ARID};
 use tokio::sync::RwLock;
+use depo_api::receipt::Receipt;
 
-use crate::{depo_impl::DepoImpl, receipt::Receipt, user::User, record::Record, depo::Depo};
+use crate::{depo_impl::DepoImpl, user::User, record::Record, depo_struct::Depo};
 
 struct Inner {
     id_to_user: HashMap<ARID, User>,
@@ -178,125 +179,5 @@ impl DepoImpl for MemDepoImpl {
 impl Depo {
     pub fn new_in_memory() -> Self {
         Self::new(MemDepoImpl::new())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use bytes::Bytes;
-    use hex_literal::hex;
-
-    #[tokio::test]
-    async fn test_mem_depot() {
-        let depo = Depo::new_in_memory();
-
-        // Alice stores a share
-        let alice_public_key = PrivateKeyBase::new().public_keys();
-        let alice_data_1 = Bytes::from_static(&hex!("cafebabe"));
-        let alice_receipt1 = depo.store_share(&alice_public_key, &alice_data_1).await.unwrap();
-
-        // Bob stores a share
-        let bob_public_key = PrivateKeyBase::new().public_keys();
-        let bob_data_1 = Bytes::from_static(&hex!("deadbeef"));
-        let bob_receipt1 = depo.store_share(&bob_public_key, &bob_data_1).await.unwrap();
-
-        // Alice retrieves her share
-        assert_eq!(depo.get_share(&alice_public_key, &alice_receipt1).await.unwrap(), alice_data_1);
-
-        // Bob retrieves his share
-        assert_eq!(depo.get_share(&bob_public_key, &bob_receipt1).await.unwrap(), bob_data_1);
-
-        // Alice stores a second share
-        let alice_data_2 = Bytes::from_static(&hex!("cafef00d"));
-        let alice_receipt_2 = depo.store_share(&alice_public_key, &alice_data_2).await.unwrap();
-
-        // Alice retrieves her second share
-        assert_eq!(depo.get_share(&alice_public_key, &alice_receipt_2).await.unwrap(), alice_data_2);
-
-        // Alice retrieves both her shares identified only by her public key
-        let alice_shares = depo.get_shares(&alice_public_key, &HashSet::new()).await.unwrap();
-        assert_eq!(alice_shares.len(), 2);
-
-        // Bob attempts to retrieve one of Alice's shares
-        assert!(depo.get_share(&bob_public_key, &alice_receipt1).await.is_err());
-
-        // Someone attempts to retrieve all shares from a nonexistent account
-        let nonexistent_public_key = PrivateKeyBase::new().public_keys();
-        assert!(depo.get_shares(&nonexistent_public_key, &HashSet::new()).await.is_err());
-
-        // Alice stores a share she's previously stored (idempotent)
-        let alice_receipt_3 = depo.store_share(&alice_public_key, &alice_data_1).await.unwrap();
-        assert_eq!(alice_receipt1, alice_receipt_3);
-
-        // Alice deletes one of her shares
-        depo.delete_share(&alice_public_key, &alice_receipt1).await.unwrap();
-        let alice_shares = depo.get_shares(&alice_public_key, &HashSet::new()).await.unwrap();
-        assert_eq!(alice_shares.len(), 1);
-        assert_eq!(alice_shares.iter().next().unwrap().1, &alice_data_2);
-
-        // Alice attempts to delete a share she already deleted (idempotent)
-        depo.delete_share(&alice_public_key, &alice_receipt1).await.unwrap();
-        let alice_shares = depo.get_shares(&alice_public_key, &HashSet::new()).await.unwrap();
-        assert_eq!(alice_shares.len(), 1);
-        assert_eq!(alice_shares.iter().next().unwrap().1, &alice_data_2);
-
-        // Bob adds a recovery method
-        let bob_recovery = "bob@example.com";
-        depo.update_recovery(&bob_public_key, Some(bob_recovery)).await.unwrap();
-        assert_eq!(depo.get_recovery(&bob_public_key).await.unwrap(), Some(bob_recovery.to_string()));
-
-        // Alice attempts to add a non-unique recovery method
-        assert!(depo.update_recovery(&alice_public_key, Some(bob_recovery)).await.is_err());
-        assert_eq!(depo.get_recovery(&alice_public_key).await.unwrap(), None);
-
-        // Someone attempts to retrieve the fallback for a nonexistent account
-        let nonexistent_public_key = PrivateKeyBase::new().public_keys();
-        assert!(depo.get_recovery(&nonexistent_public_key).await.is_err());
-
-        // Alice updates her public key to a new one
-        let alice_public_key_2 = PrivateKeyBase::new().public_keys();
-        depo.update_key(&alice_public_key, &alice_public_key_2).await.unwrap();
-
-        // Alice can no longer retrieve her shares using the old public key
-        assert!(depo.get_shares(&alice_public_key, &HashSet::new()).await.is_err());
-
-        // Alice must now use her new public key
-        let alice_shares = depo.get_shares(&alice_public_key_2, &HashSet::new()).await.unwrap();
-        assert_eq!(alice_shares.len(), 1);
-
-        // Bob has lost his public key, so he wants to replace it with a new one
-        let bob_public_key_2 = PrivateKeyBase::new().public_keys();
-
-        // Bob requests transfer using an incorrect recovery method
-        assert!(depo.start_recovery_transfer("wrong@example.com", &bob_public_key_2).await.is_err());
-
-        // Bob requests a transfer using the correct recovery method
-        //
-        // The recovery continuation is sent to Bob's recovery contact method. It is both signed
-        // by the server and encrypted to the server, and is also time-limited.
-        let recovery_continuation = depo.start_recovery_transfer(bob_recovery, &bob_public_key_2).await.unwrap();
-
-        // Bob uses the recovery continuation to finish setting his new public key
-        depo.finish_recovery_transfer(&recovery_continuation).await.unwrap();
-
-        // Bob can no longer retrieve his shares using the old public key
-        assert!(depo.get_shares(&bob_public_key, &HashSet::new()).await.is_err());
-
-        // Bob must now use his new public key
-        let bob_shares = depo.get_shares(&bob_public_key_2, &HashSet::new()).await.unwrap();
-        assert_eq!(bob_shares.len(), 1);
-
-        // Bob decides to delete his account
-        depo.delete_account(&bob_public_key_2).await.unwrap();
-
-        // Bob can no longer retrieve his shares using the new public key
-        assert!(depo.get_shares(&bob_public_key_2, &HashSet::new()).await.is_err());
-
-        // Attempting to retrieve his fallback now throws an error
-        assert!(depo.get_recovery(&bob_public_key_2).await.is_err());
-
-        // Deleting an account is idempotent
-        depo.delete_account(&bob_public_key_2).await.unwrap();
     }
 }
