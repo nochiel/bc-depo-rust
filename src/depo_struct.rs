@@ -143,7 +143,7 @@ impl Depo {
         let request = StartRecoveryRequest::from_envelope(request.clone())?;
 
         let continuation = self
-            .start_recovery(request.recovery(), request.new_key())
+            .start_recovery(request.recovery(), request.key())
             .await?;
 
         let response = StartRecoveryResponse::new(request.id().clone(), continuation).into();
@@ -291,7 +291,7 @@ impl Depo {
             let existing_recovery_user = self.0.recovery_to_user(non_opt_recovery).await?;
             if let Some(existing_recovery_user) = existing_recovery_user {
                 if existing_recovery_user.user_id() != user.user_id() {
-                    bail!("recovery already in use");
+                    bail!("recovery method already exists");
                 } else {
                     // The user is already using this recovery, so we can just return
                     // (idempotency)
