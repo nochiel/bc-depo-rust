@@ -6,7 +6,7 @@ use depo_api::receipt::Receipt;
 use mysql_async::Pool;
 use bc_envelope::prelude::*;
 
-use crate::{depo_impl::DepoImpl, user::User, record::Record, depo_struct::Depo, db::{get_settings, db_pool}};
+use crate::{depo_impl::DepoImpl, user::User, record::Record, depo_struct::Depo, db};
 
 struct DbDepoImpl {
     pool: Pool,
@@ -19,8 +19,8 @@ struct DbDepoImpl {
 
 impl DbDepoImpl {
     async fn new() -> anyhow::Result<Arc<Self>> {
-        let pool = db_pool();
-        let (private_key, continuation_expiry_seconds, max_payload_size) = get_settings(&pool).await?;
+        let pool = db::db_pool();
+        let (private_key, continuation_expiry_seconds, max_payload_size) = db::get_settings(&pool).await?;
         let public_key = private_key.public_keys();
         let public_key_string = public_key.ur_string();
         Ok(Arc::new(Self {
@@ -57,31 +57,33 @@ impl DepoImpl for DbDepoImpl {
     }
 
     async fn existing_key_to_id(&self, public_key: &PublicKeyBase) -> anyhow::Result<Option<ARID>> {
-        todo!()
+        let user = db::key_to_user(&self.pool, public_key).await?;
+        let id = user.map(|user| user.user_id().clone());
+        Ok(id)
     }
 
     async fn existing_id_to_user(&self, user_id: &ARID) -> anyhow::Result<Option<User>> {
-        todo!()
+        Ok(db::id_to_user(&self.pool, user_id).await?)
     }
 
     async fn insert_user(&self, user: &User) -> anyhow::Result<()> {
-        todo!()
+        db::insert_user(&self.pool, user).await
     }
 
     async fn insert_record(&self, record: &Record) -> anyhow::Result<()> {
-        todo!()
+        db::insert_record(&self.pool, record).await
     }
 
     async fn id_to_receipts(&self, user_id: &ARID) -> anyhow::Result<HashSet<Receipt>> {
-        todo!()
+        db::id_to_receipts(&self.pool, user_id).await
     }
 
     async fn receipt_to_record(&self, receipt: &Receipt) -> anyhow::Result<Option<Record>> {
-        todo!()
+        db::receipt_to_record(&self.pool, receipt).await
     }
 
     async fn delete_record(&self, receipt: &Receipt) -> anyhow::Result<()> {
-        todo!()
+        db::delete_record(&self.pool, receipt).await
     }
 
     async fn set_user_key(&self, old_public_key: &PublicKeyBase, new_public_key: &PublicKeyBase) -> anyhow::Result<()> {

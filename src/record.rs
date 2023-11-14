@@ -17,11 +17,14 @@ pub struct Record {
 
 impl Record {
     pub fn new(user_id: &ARID, data: &Bytes) -> Self {
-        let receipt = Receipt::new(user_id, data);
+        Self::new_opt(Receipt::new(user_id, data), user_id.clone(), data.clone())
+    }
+
+    pub fn new_opt(receipt: Receipt, user_id: ARID, data: Bytes) -> Self {
         Self {
             receipt,
-            user_id: user_id.clone(),
-            data: data.clone(),
+            user_id,
+            data,
         }
     }
 

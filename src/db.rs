@@ -1,8 +1,12 @@
+use std::collections::HashSet;
+
+use crate::record::Record;
 use crate::{CONTINUATION_EXPIRY_SECONDS, MAX_PAYLOAD_SIZE};
 use crate::user::User;
 use bc_components::{PublicKeyBase, ARID, PrivateKeyBase};
 use bc_envelope::prelude::*;
-use mysql_async::{Pool, Result as MySqlResult, Row};
+use depo_api::Receipt;
+use mysql_async::{Pool, Row};
 use mysql_async::prelude::*;
 use url::Url;
 use anyhow::anyhow;
@@ -40,7 +44,7 @@ pub fn db_pool() -> Pool {
     Pool::new(database_url().as_str())
 }
 
-pub async fn drop_db(server_pool: &Pool) -> MySqlResult<()> {
+pub async fn drop_db(server_pool: &Pool) -> anyhow::Result<()> {
     let query = format!("DROP DATABASE IF EXISTS {}", DATABASE_NAME);
     server_pool.get_conn().await?.query_drop(query).await?;
 
@@ -59,7 +63,7 @@ pub async fn drop_db(server_pool: &Pool) -> MySqlResult<()> {
 // receipt:
 // ur:envelope/lftpcshdcxbgryatktiacpbteycnynsnjywktlbyaxwznskgosbdiskohhtpwybwspglvwadgmoyadtpcsiogmihiaihinjojycwswqdbd
 
-pub async fn create_db(server_pool: &Pool) -> MySqlResult<()> {
+pub async fn create_db(server_pool: &Pool) -> anyhow::Result<()> {
     let query = format!("CREATE DATABASE IF NOT EXISTS {}", DATABASE_NAME);
     server_pool.get_conn().await?.query_drop(query).await?;
 
@@ -110,7 +114,7 @@ pub async fn create_db(server_pool: &Pool) -> MySqlResult<()> {
     Ok(())
 }
 
-pub async fn reset_db() -> MySqlResult<()> {
+pub async fn reset_db() -> anyhow::Result<()> {
     let server_pool = server_pool();
     drop_db(&server_pool).await?;
     create_db(&server_pool).await?;
@@ -118,11 +122,11 @@ pub async fn reset_db() -> MySqlResult<()> {
     Ok(())
 }
 
-pub async fn key_to_user(pool: &Pool, key: impl AsRef<PublicKeyBase>) -> MySqlResult<Option<User>> {
+pub async fn key_to_user(pool: &Pool, key: impl AsRef<PublicKeyBase>) -> anyhow::Result<Option<User>> {
     let mut conn = pool.get_conn().await?;
     let query = "SELECT user_id, public_key, recovery FROM users WHERE public_key = :key";
     let params = params! {
-        "key" => key.as_ref().envelope().ur_string()
+        "key" => key.as_ref().ur_string()
     };
 
     let result: Option<Row> = conn.exec_first(query, params).await?;
@@ -133,11 +137,42 @@ pub async fn key_to_user(pool: &Pool, key: impl AsRef<PublicKeyBase>) -> MySqlRe
     }
 }
 
-pub async fn id_to_user(pool: &Pool, user_id: impl AsRef<ARID>) -> MySqlResult<Option<User>> {
+pub async fn insert_user(pool: &Pool, user: &User) -> anyhow::Result<()> {
+    let mut conn = pool.get_conn().await?;
+    let query = format!("INSERT INTO {}.{} (user_id, public_key, recovery) VALUES (:user_id, :public_key, :recovery)", DATABASE_NAME, USERS_TABLE_NAME);
+    let params = params! {
+        "user_id" => user.user_id().ur_string(),
+        "public_key" => user.public_key().ur_string(),
+        "recovery" => user.recovery(),
+    };
+
+    conn.exec_drop(query, params).await?;
+
+    Ok(())
+}
+
+pub async fn insert_record(pool: &Pool, record: &Record) -> anyhow::Result<()> {
+    let mut conn = pool.get_conn().await?;
+    let query = format!(r#"
+        INSERT IGNORE INTO {}.{} (receipt, user_id, data)
+        VALUES (:receipt, :user_id, :data)
+    "#, DATABASE_NAME, RECORDS_TABLE_NAME);
+    let params = params! {
+        "receipt" => record.receipt().envelope().ur_string(),
+        "user_id" => record.user_id().ur_string(),
+        "data" => record.data().as_ref(),
+    };
+
+    conn.exec_drop(query, params).await?;
+
+    Ok(())
+}
+
+pub async fn id_to_user(pool: &Pool, user_id: impl AsRef<ARID>) -> anyhow::Result<Option<User>> {
     let mut conn = pool.get_conn().await?;
     let query = "SELECT user_id, public_key, recovery FROM users WHERE user_id = :user_id";
     let params = params! {
-        "user_id" => user_id.as_ref().envelope().ur_string()
+        "user_id" => user_id.as_ref().ur_string()
     };
 
     let result: Option<Row> = conn.exec_first(query, params).await?;
@@ -146,6 +181,57 @@ pub async fn id_to_user(pool: &Pool, user_id: impl AsRef<ARID>) -> MySqlResult<O
     } else {
         Ok(None)
     }
+}
+
+pub async fn id_to_receipts(pool: &Pool, user_id: impl AsRef<ARID>) -> anyhow::Result<HashSet<Receipt>> {
+    let mut conn = pool.get_conn().await?;
+    let query = "SELECT receipt FROM records WHERE user_id = :user_id";
+    let params = params! {
+        "user_id" => user_id.as_ref().ur_string()
+    };
+
+    let mut receipts = HashSet::new();
+    let result: Vec<Row> = conn.exec(query, params).await?;
+    for row in result {
+        let receipt_string: String = row.get("receipt").unwrap();
+        let receipt_envelope = Envelope::from_ur_string(receipt_string).unwrap();
+        let receipt = Receipt::from_envelope(receipt_envelope).unwrap();
+        receipts.insert(receipt);
+    }
+
+    Ok(receipts)
+}
+
+pub async fn receipt_to_record(pool: &Pool, receipt: &Receipt) -> anyhow::Result<Option<Record>> {
+    let mut conn = pool.get_conn().await?;
+    let query = "SELECT user_id, data FROM records WHERE receipt = :receipt";
+    let params = params! {
+        "receipt" => receipt.envelope().ur_string()
+    };
+
+    let result: Option<Row> = conn.exec_first(query, params).await?;
+    if let Some(row) = result {
+        let user_id_string: String = row.get("user_id").unwrap();
+        let user_id = ARID::from_ur_string(user_id_string).unwrap();
+        let data: Vec<u8> = row.get("data").unwrap();
+        let record = Record::new_opt(receipt.clone(), user_id, data.into());
+
+        Ok(Some(record))
+    } else {
+        Ok(None)
+    }
+}
+
+pub async fn delete_record(pool: &Pool, receipt: &Receipt) -> anyhow::Result<()> {
+    let mut conn = pool.get_conn().await?;
+    let query = "DELETE FROM records WHERE receipt = :receipt";
+    let params = params! {
+        "receipt" => receipt.envelope().ur_string()
+    };
+
+    conn.exec_drop(query, params).await?;
+
+    Ok(())
 }
 
 fn row_to_user(row: Row) -> User {
@@ -153,7 +239,7 @@ fn row_to_user(row: Row) -> User {
     let user_id = ARID::from_ur_string(user_id_string).unwrap();
     let public_key_string: String = row.get("public_key").unwrap();
     let public_key = PublicKeyBase::from_ur_string(public_key_string).unwrap();
-    let recovery: Option<String> = row.get("recovery");
+    let recovery: Option<String> = row.get_opt("recovery").unwrap().ok();
 
     User::new_opt(user_id, public_key, recovery)
 }
