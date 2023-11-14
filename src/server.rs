@@ -1,6 +1,6 @@
 use warp::{Filter, http::StatusCode, reply::{self, Reply}, reject::Rejection};
 
-use crate::{db::reset_db, Depo};
+use crate::{reset_db, Depo};
 
 pub async fn start_server() -> anyhow::Result<()> {
     let depo = Depo::new_db().await?;

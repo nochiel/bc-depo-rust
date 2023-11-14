@@ -4,7 +4,20 @@ use depo_api::{request::store_share::StoreShareRequest, GetSharesRequest, StoreS
 use indoc::indoc;
 use bc_envelope::prelude::*;
 use hex_literal::hex;
-use depo::{Depo, db::reset_db};
+use depo::{Depo, reset_db};
+
+#[tokio::test]
+async fn test_mem_depo() {
+    let depo = Depo::new_in_memory();
+    test_depo(depo).await;
+}
+
+#[tokio::test]
+async fn test_db_depo() {
+    reset_db().await.unwrap();
+    let depo = Depo::new_db().await.unwrap();
+    test_depo(depo).await;
+}
 
 #[test]
 fn test_store_share_request() {
@@ -53,19 +66,6 @@ fn test_store_share_request() {
         ]
         "#}.trim()
     );
-}
-
-#[tokio::test]
-async fn test_mem_depo() {
-    let depo = Depo::new_in_memory();
-    test_depo(depo).await;
-}
-
-#[tokio::test]
-async fn test_db_depo() {
-    reset_db().await.unwrap();
-    let depo = Depo::new_db().await.unwrap();
-    test_depo(depo).await;
 }
 
 async fn server_call(request: impl EnvelopeEncodable, client_private_key: &PrivateKeyBase, depo_public_key: &PublicKeyBase, depo: &Depo) -> anyhow::Result<Envelope> {
