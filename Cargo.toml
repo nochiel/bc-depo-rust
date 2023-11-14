@@ -6,19 +6,19 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# dcbor = "0.10.0"
-dcbor = { path = "../dcbor" }
+# dcbor = { version = "0.10.0", features = ["multithreaded"] }
+dcbor = { path = "../dcbor", features = ["multithreaded"] }
 
 # bc-ur = "0.2.1"
 bc-ur = { path = "../bc-ur" }
 
-# bc-envelope = "0.11.0"
-bc-envelope = { path = "../bc-envelope" }
+# bc-envelope = { version = "0.11.0", features = ["multithreaded"] }
+bc-envelope = { path = "../bc-envelope", features = ["multithreaded"] }
 
 # bc-components = "0.6.0"
 bc-components = { path = "../bc-components" }
 
-depo-api = { path = "../depo-api" }
+depo-api = { path = "../depo-api", features = ["multithreaded"] }
 
 warp = "0.3"
 tokio = { version = "1", features = ["full"] }
@@ -28,7 +28,9 @@ anyhow = "1.0"
 hex = "0.4.3"
 async-trait = "0.1.74"
 bytes = "1.5.0"
+url = "2.4.1"
 
 [dev-dependencies]
 indoc = "2.0.4"
 hex-literal = "0.4.1"
+reqwest = "0.11.22"

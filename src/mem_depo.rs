@@ -1,11 +1,12 @@
-use std::collections::{HashSet, HashMap};
+use std::{collections::{HashSet, HashMap}, sync::Arc};
 
 use async_trait::async_trait;
 use bc_components::{PublicKeyBase, PrivateKeyBase, ARID};
 use tokio::sync::RwLock;
 use depo_api::receipt::Receipt;
+use bc_envelope::prelude::*;
 
-use crate::{depo_impl::DepoImpl, user::User, record::Record, depo_struct::Depo};
+use crate::{depo_impl::DepoImpl, user::User, record::Record, depo_struct::Depo, MAX_PAYLOAD_SIZE, CONTINUATION_EXPIRY_SECONDS};
 
 struct Inner {
     id_to_user: HashMap<ARID, User>,
@@ -18,19 +19,19 @@ struct Inner {
 struct MemDepoImpl {
     private_key: PrivateKeyBase,
     public_key: PublicKeyBase,
+    public_key_string: String,
     inner: RwLock<Inner>,
 }
 
 impl MemDepoImpl {
-    const MAX_PAYLOAD_SIZE: usize = 1000;
-    const CONTINUATION_EXPIRY_SECONDS: f64 = 60.0 * 60.0 * 24.0;
-
-    fn new() -> Box<Self> {
+    fn new() -> Arc<Self> {
         let private_key = PrivateKeyBase::new();
         let public_key = private_key.public_keys();
-        Box::new(Self {
+        let public_key_string = public_key.ur_string();
+        Arc::new(Self {
             private_key,
             public_key,
+            public_key_string,
             inner: RwLock::new(Inner {
                 id_to_user: HashMap::new(),
                 recovery_to_id: HashMap::new(),
@@ -60,12 +61,12 @@ impl std::fmt::Debug for MemDepoImpl {
 
 #[async_trait]
 impl DepoImpl for MemDepoImpl {
-    fn max_payload_size(&self) -> usize {
-        Self::MAX_PAYLOAD_SIZE
+    fn max_payload_size(&self) -> u32 {
+        MAX_PAYLOAD_SIZE
     }
 
-    fn continuation_expiry_seconds(&self) -> f64 {
-        Self::CONTINUATION_EXPIRY_SECONDS
+    fn continuation_expiry_seconds(&self) -> u32 {
+        CONTINUATION_EXPIRY_SECONDS
     }
 
     fn private_key(&self) -> &PrivateKeyBase {
@@ -74,6 +75,10 @@ impl DepoImpl for MemDepoImpl {
 
     fn public_key(&self) -> &PublicKeyBase {
         &self.public_key
+    }
+
+    fn public_key_string(&self) -> &str {
+        &self.public_key_string
     }
 
     async fn existing_key_to_id(&self, public_key: &PublicKeyBase) -> anyhow::Result<Option<ARID>> {

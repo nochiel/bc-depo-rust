@@ -58,7 +58,7 @@ fn test_store_share_request() {
 async fn server_call(request: impl EnvelopeEncodable, client_private_key: &PrivateKeyBase, depo_public_key: &PublicKeyBase, depo: &Depo) -> anyhow::Result<Envelope> {
     let request = request.envelope();
     let encrypted_request = request.sign_and_encrypt(client_private_key, depo_public_key)?;
-    let encrypted_response = depo.handle_request(&encrypted_request).await?;
+    let encrypted_response = depo.handle_request(encrypted_request).await?;
     let response = encrypted_response.verify_and_decrypt(depo_public_key, client_private_key)?;
     assert_eq!(response.response_id().unwrap(), request.request_id().unwrap());
     Ok(response)

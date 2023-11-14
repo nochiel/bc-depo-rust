@@ -17,3 +17,21 @@ For no password (development only!):
 ```bash
 sudo $(brew --prefix mariadb)/bin/mariadb-admin -u root password ''
 ```
+
+To verify that the brew service is running:
+
+```bash
+brew services list | grep mariadb
+```
+
+To verify that the server is active and that it is listening on port the default port:
+
+```bash
+lsof -i :3306
+```
+
+To log into the monitor:
+
+```bash
+mysql -u root -p
+```

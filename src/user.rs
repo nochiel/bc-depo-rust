@@ -9,10 +9,10 @@ pub struct User {
 
 impl User {
     pub fn new(user_id: ARID, public_key: PublicKeyBase) -> Self {
-        Self::new_with_recovery(user_id, public_key, None)
+        Self::new_opt(user_id, public_key, None)
     }
 
-    pub fn new_with_recovery(user_id: ARID, public_key: PublicKeyBase, recovery: Option<String>) -> Self {
+    pub fn new_opt(user_id: ARID, public_key: PublicKeyBase, recovery: Option<String>) -> Self {
         Self {
             user_id,
             public_key,

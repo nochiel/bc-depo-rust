@@ -9,10 +9,11 @@ use crate::{user::User, record::Record};
 
 #[async_trait]
 pub trait DepoImpl {
-    fn max_payload_size(&self) -> usize;
-    fn continuation_expiry_seconds(&self) -> f64;
+    fn max_payload_size(&self) -> u32;
+    fn continuation_expiry_seconds(&self) -> u32;
     fn private_key(&self) -> &PrivateKeyBase;
     fn public_key(&self) -> &PublicKeyBase;
+    fn public_key_string(&self) -> &str;
     async fn existing_key_to_id(&self, key: &PublicKeyBase) -> anyhow::Result<Option<ARID>>;
     async fn existing_id_to_user(&self, user_id: &ARID) -> anyhow::Result<Option<User>>;
     async fn insert_user(&self, user: &User) -> anyhow::Result<()>;

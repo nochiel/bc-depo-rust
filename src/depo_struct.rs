@@ -1,7 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, sync::Arc};
 
 use anyhow::bail;
-use bc_components::PublicKeyBase;
+use bc_components::{PublicKeyBase, PrivateKeyBase};
 use bc_envelope::prelude::*;
 use bytes::Bytes;
 use depo_api::{
@@ -16,18 +16,33 @@ use depo_api::{
 
 use crate::{depo_impl::DepoImpl, record::Record, recovery_continuation::RecoveryContinuation};
 
-pub struct Depo(Box<dyn DepoImpl + Send + Sync>);
+#[derive(Clone)]
+pub struct Depo(Arc<dyn DepoImpl + Send + Sync>);
 
 impl Depo {
-    pub fn new(inner: Box<dyn DepoImpl + Send + Sync>) -> Self {
+    pub fn new(inner: Arc<dyn DepoImpl + Send + Sync>) -> Self {
         Self(inner)
+    }
+
+    pub fn private_key(&self) -> &PrivateKeyBase {
+        self.0.private_key()
     }
 
     pub fn public_key(&self) -> &PublicKeyBase {
         self.0.public_key()
     }
 
-    pub async fn handle_request(&self, encrypted_request: &Envelope) -> anyhow::Result<Envelope> {
+    pub fn public_key_string(&self) -> &str {
+        self.0.public_key_string()
+    }
+
+    pub async fn handle_request_string(&self, request: String) -> anyhow::Result<String> {
+        let request = Envelope::from_ur_string(&request)?;
+        let response = self.handle_request(request).await?.ur_string();
+        Ok(response)
+    }
+
+    pub async fn handle_request(&self, encrypted_request: Envelope) -> anyhow::Result<Envelope> {
         // Decrypt the request
         let signed_request = encrypted_request
             .decrypt_to_recipient(self.0.private_key())?
@@ -169,7 +184,7 @@ impl Depo {
     /// already existing share to an account is idempotent.
     pub async fn store_share(&self, key: &PublicKeyBase, data: &Bytes) -> anyhow::Result<Receipt> {
         let user = self.0.key_to_user(key).await?;
-        if data.len() > self.0.max_payload_size() {
+        if data.len() > self.0.max_payload_size() as usize {
             bail!("data too large");
         }
         let record = Record::new(user.user_id(), data);
@@ -345,7 +360,7 @@ impl Depo {
         let recovery_continuation = RecoveryContinuation::new(
             user.public_key().clone(),
             new_key.clone(),
-            dcbor::Date::now() + self.0.continuation_expiry_seconds(),
+            dcbor::Date::now() + self.0.continuation_expiry_seconds() as f64,
         );
         let continuation_envelope = recovery_continuation
             .envelope()
