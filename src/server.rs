@@ -1,5 +1,6 @@
 use log::info;
 use warp::{Filter, http::StatusCode, reply::{self, Reply}, reject::Rejection};
+use nu_ansi_term::Color::Green;
 
 use crate::{reset_db, Depo, db_depo::{create_db, server_pool}};
 
@@ -35,8 +36,8 @@ pub async fn start_server(schema_name: &str, port: u16) -> anyhow::Result<()> {
     let addr = format!("{}:{}", host, port);
     let socket_addr = addr.parse::<std::net::SocketAddr>()?;
 
-    info!("Starting Blockchain Commons Depository on {}:{}", host, port);
-    info!("Public key: {}", depo.public_key_string());
+    info!("{}", Green.paint(format!("Starting Blockchain Commons Depository on {}:{}", host, port)));
+    info!("{}", Green.paint(format!("Public key: {}", depo.public_key_string())));
 
     warp::serve(routes)
         .run(socket_addr)

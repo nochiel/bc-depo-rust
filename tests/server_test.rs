@@ -9,7 +9,7 @@ use tokio::time::sleep;
 use std::time::Duration;
 use url::Url;
 use bc_components::{PublicKeyBase, PrivateKeyBase};
-use nu_ansi_term::Color::{Cyan, Red};
+use nu_ansi_term::Color::{Cyan, Red, Yellow};
 use depo_api::{
     request::store_share::StoreShareRequest, DeleteAccountRequest, DeleteSharesRequest,
     FinishRecoveryRequest, GetRecoveryRequest, GetRecoveryResponse, GetSharesRequest,
@@ -31,14 +31,12 @@ async fn test_in_memory_depo() {
 async fn test_db_depo() {
     setup_log();
     let schema_name = "test_db_depo";
-    match create_db_if_needed(schema_name).await {
-        Ok(_) => {},
-        Err(e) => {
-            warn!("Skipping test_db_depo because we can't connect to the database: {}", e);
-            return;
-        }
+    if let Err(e) = create_db_if_needed(schema_name).await {
+        warn!("{}", Yellow.paint(format!("Skipping `{}` because can't connect to the database.", schema_name)).to_string());
+        warn!("{}", Yellow.paint(format!("{}", e)).to_string());
+        return;
     }
-    info!("Starting test_db_depo on database: {}", schema_name);
+
     let depo = Depo::new_db(schema_name).await.unwrap();
     test_depo_scenario(depo.public_key(), &depo).await;
 }
@@ -50,15 +48,11 @@ async fn test_server_depo() {
     setup_log();
     let schema_name = "test_server_depo";
     let port: u16 = 5333;
-    match create_db_if_needed(schema_name).await {
-        Ok(_) => {},
-        Err(e) => {
-            warn!("Skipping test_server_depo because we can't connect to the database: {}", e);
-            return;
-        }
+    if let Err(e) = create_db_if_needed(schema_name).await {
+        warn!("{}", Yellow.paint(format!("Skipping `{}` because can't connect to the database.", schema_name)).to_string());
+        warn!("{}", Yellow.paint(format!("{}", e)).to_string());
+        return;
     }
-
-    info!("Starting test_server_depo on database: {}", schema_name);
 
     // Start the server and wait for it to be ready
     tokio::spawn(async move {
@@ -82,9 +76,17 @@ async fn test_server_separate() {
     let port: u16 = 5332;
     let depo = ClientRequestHandler::new(port);
 
-    let depo_public_key = &get_public_key(&depo).await.unwrap();
+    // skip test if error
+    let depo_public_key = match get_public_key(&depo).await {
+        Ok(key) => key,
+        Err(e) => {
+            warn!("{}", Yellow.paint(format!("Skipping `{}` because can't connect to the depo server.", "test_server_separate")).to_string());
+            warn!("{}", Yellow.paint(format!("{}", e)).to_string());
+            return;
+        }
+    };
 
-    test_depo_scenario(depo_public_key, &depo).await;
+    test_depo_scenario(&depo_public_key, &depo).await;
 }
 
 #[async_trait]
@@ -130,7 +132,7 @@ fn url(port: u16) -> Url {
 }
 
 async fn get_public_key(client: &ClientRequestHandler) -> anyhow::Result<PublicKeyBase> {
-    let resp = client.client.get(url(client.port)).send().await.unwrap();
+    let resp = client.client.get(url(client.port)).send().await?;
 
     assert_eq!(resp.status(), StatusCode::OK);
     let string = resp.text().await.unwrap();

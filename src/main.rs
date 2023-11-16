@@ -1,10 +1,15 @@
 use depo::{start_server, setup_log};
+use log::error;
+use nu_ansi_term::Color::Red;
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() {
     setup_log();
 
     let schema_name = "depo";
 
-    start_server(schema_name, 5332).await
+    if let Err(e) = start_server(schema_name, 5332).await {
+        error!("{}", Red.paint("Could not start server. Is the database running?").to_string());
+        error!("{}", Red.paint(format!("{}", e)).to_string());
+    };
 }
