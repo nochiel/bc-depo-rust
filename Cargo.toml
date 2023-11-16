@@ -24,7 +24,8 @@ bc-envelope = { version = "0.12.0", features = ["multithreaded"] }
 bc-components = "0.7.0"
 # bc-components = { path = "../bc-components" }
 
-depo-api = { path = "../depo-api", features = ["multithreaded"] }
+depo-api = { version = "0.1.0", features = ["multithreaded"] }
+# depo-api = { path = "../depo-api", features = ["multithreaded"] }
 
 warp = "0.3"
 tokio = { version = "1", features = ["full"] }
