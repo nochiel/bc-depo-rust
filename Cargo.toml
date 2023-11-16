@@ -8,7 +8,7 @@ keywords = ["cryptocurrency", "security", "key-management", "recovery", "server"
 repository = "https://github.com/BlockchainCommons/bc-depo-rust"
 readme = "README.md"
 license = "BSD-2-Clause-Patent"
-categories = ["cryptography", "database", "security", "web-programming::http-server"]
+categories = ["cryptography", "database", "web-programming::http-server"]
 documentation = "https://docs.rs/depo"
 
 [dependencies]
