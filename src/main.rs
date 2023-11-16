@@ -1,4 +1,4 @@
-use depo::{start_server, log::setup_log};
+use depo::{start_server, setup_log};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

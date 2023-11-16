@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use bytes::Bytes;
 use bc_envelope::prelude::*;
-use depo::{Depo, start_server, log::setup_log, db_depo::create_db_if_needed};
+use depo::{Depo, start_server, setup_log, create_db_if_needed};
 use log::{warn, info};
 use reqwest::{self, Client, StatusCode};
 use hex_literal::hex;
