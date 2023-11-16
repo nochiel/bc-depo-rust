@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use depo_api::receipt::Receipt;
 use bc_envelope::prelude::*;
 
-use crate::{depo_impl::DepoImpl, user::User, record::Record, depo_struct::Depo, MAX_PAYLOAD_SIZE, CONTINUATION_EXPIRY_SECONDS};
+use crate::{depo_impl::DepoImpl, user::User, record::Record, function::Depo, MAX_DATA_SIZE, CONTINUATION_EXPIRY_SECONDS};
 
 struct Inner {
     id_to_user: HashMap<ARID, User>,
@@ -61,8 +61,8 @@ impl std::fmt::Debug for MemDepoImpl {
 
 #[async_trait]
 impl DepoImpl for MemDepoImpl {
-    fn max_payload_size(&self) -> u32 {
-        MAX_PAYLOAD_SIZE
+    fn max_data_size(&self) -> u32 {
+        MAX_DATA_SIZE
     }
 
     fn continuation_expiry_seconds(&self) -> u32 {

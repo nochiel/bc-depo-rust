@@ -3,13 +3,13 @@ use std::collections::HashSet;
 use anyhow::bail;
 use async_trait::async_trait;
 use bc_components::{PublicKeyBase, ARID, PrivateKeyBase};
-use depo_api::receipt::Receipt;
+use depo_api::{receipt::Receipt, util::Abbrev};
 
 use crate::{user::User, record::Record};
 
 #[async_trait]
 pub trait DepoImpl {
-    fn max_payload_size(&self) -> u32;
+    fn max_data_size(&self) -> u32;
     fn continuation_expiry_seconds(&self) -> u32;
     fn private_key(&self) -> &PrivateKeyBase;
     fn public_key(&self) -> &PublicKeyBase;
@@ -67,7 +67,7 @@ pub trait DepoImpl {
         let user_id = self.existing_key_to_user(key).await?;
         let user_id = match user_id {
             Some(user_id) => user_id,
-            None => bail!("unknown public key"),
+            None => bail!("unknown public key {}", key.abbrev()),
         };
         Ok(user_id)
     }

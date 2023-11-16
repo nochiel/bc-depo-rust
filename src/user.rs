@@ -40,18 +40,3 @@ impl User {
         self.recovery = recovery.map(str::to_owned);
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use bc_components::PrivateKeyBase;
-
-    use super::*;
-
-    #[test]
-    fn test_1() {
-        let private_key = PrivateKeyBase::new();
-        let public_key = private_key.public_keys();
-        let user = User::new(ARID::new(), public_key);
-        println!("{:?}", user);
-    }
-}

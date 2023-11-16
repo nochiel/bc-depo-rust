@@ -64,14 +64,3 @@ impl std::fmt::Debug for Record {
             .finish()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_1() {
-        let record = Record::new(&ARID::new(), &Bytes::from_static(&[0x01, 0x02, 0x03]));
-        println!("{:?}", record);
-    }
-}
