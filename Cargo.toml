@@ -1,6 +1,6 @@
 [package]
 name = "depo"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Server for secure and anonymous storage and retrieval of binary objects."
 authors = ["Blockchain Commons"]
