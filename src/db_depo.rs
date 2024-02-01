@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, env, sync::Arc};
 
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -310,10 +310,16 @@ pub async fn key_to_user(
 
 pub fn server_url() -> Url {
     let mut server_url = Url::parse("mysql://").unwrap();
-    server_url.set_host(Some(HOST)).unwrap();
+    let host = match env::var("DB_HOST") {
+        Ok(val) => String::from(val.trim_matches('"')),
+        Err(_) => HOST.to_string(),
+    };
+    println!("Using host: {}", host);
+    server_url.set_host(Some(&host)).unwrap();
     server_url.set_username(USER).unwrap();
     server_url.set_password(PASSWORD).unwrap();
     server_url.set_port(Some(PORT)).unwrap();
+    println!("Server URL: {}", server_url);
     server_url
 }
 

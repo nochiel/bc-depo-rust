@@ -32,7 +32,7 @@ pub async fn start_server(schema_name: &str, port: u16) -> anyhow::Result<()> {
         .or(operation_route)
         .or(reset_db_route);
 
-    let host = "127.0.0.1";
+    let host = "0.0.0.0";
     let addr = format!("{}:{}", host, port);
     let socket_addr = addr.parse::<std::net::SocketAddr>()?;
 
