@@ -105,30 +105,30 @@ There are nine supported functions:
 
 ### Storing, Retrieving, and Deleting BLOBs
 
-* `storeShare` - stores a single BLOB associated with the client's public key,
+- `storeShare` - stores a single BLOB associated with the client's public key,
   returns a Receipt.
-* `getShares` - takes a list of `Receipt`s and returns the BLOBs associated with
+- `getShares` - takes a list of `Receipt`s and returns the BLOBs associated with
   the client's public key and those receipts. If the list of receipts is empty,
   it returns all BLOBs associated with the client's public key.
-* `deleteShares` - takes a list of `Receipt`s and deletes the BLOBs associated
+- `deleteShares` - takes a list of `Receipt`s and deletes the BLOBs associated
   with the client's public key and those receipts. If the list of receipts is
   empty, it deletes all BLOBs associated with the client's public key.
 
 ### Account Maintenance
 
-* `updateKey` - Updates the client's public key. This is used to change the
+- `updateKey` - Updates the client's public key. This is used to change the
   client's public key when necessary.
-* `updateRecovery` - Updates or removes the client's recovery method. This is a
+- `updateRecovery` - Updates or removes the client's recovery method. This is a
   second-factor authentication method that is used to authorize assigning a new
   public key.
-* `getRecovery` - Returns the client's recovery method, if any.
-* `startRecovery` - Starts the recovery process. This includes a new public key.
+- `getRecovery` - Returns the client's recovery method, if any.
+- `startRecovery` - Starts the recovery process. This includes a new public key.
   To finish the process, the client must use the second-factor authentication
   method to retrieve a continuation.
-* `finishRecovery` - Finishes the recovery process by taking the continuation
+- `finishRecovery` - Finishes the recovery process by taking the continuation
   retrieved using the second-factor authentication method. If the continuation
   has not expired, the client's public key is updated to the new public key.
-* `deleteAccount` - Deletes the client's account, including all BLOBs and recovery
+- `deleteAccount` - Deletes the client's account, including all BLOBs and recovery
   method.
 
 ## The `depo-api` Crate.
