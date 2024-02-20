@@ -1,3 +1,4 @@
+# @todo Make this into a lib
 [package]
 name = "depo"
 version = "0.1.2"

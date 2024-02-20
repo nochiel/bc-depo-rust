@@ -9,12 +9,13 @@ use mysql_async::{prelude::*, Pool, Row};
 use url::Url;
 
 use crate::{
-    depo_impl::DepoImpl, function::Depo, record::Record, user::User,
-    CONTINUATION_EXPIRY_SECONDS, MAX_DATA_SIZE,
+    depo_impl::DepoImpl, function::Depo, record::Record, user::User, CONTINUATION_EXPIRY_SECONDS,
+    MAX_DATA_SIZE,
 };
 
 const USER: &str = "root";
 const PASSWORD: Option<&str> = None;
+// @todo Make hostname configurable because if depo is running in Docker then it needs the db container's hostname.
 const HOST: &str = "localhost";
 const PORT: u16 = 3306;
 
@@ -390,8 +391,10 @@ pub async fn create_db(server_pool: &Pool, schema_name: &str) -> anyhow::Result<
         schema_name, SETTINGS_TABLE_NAME
     );
     let count: u64 = server_pool
-        .get_conn().await?
-        .query_first(check_query).await?
+        .get_conn()
+        .await?
+        .query_first(check_query)
+        .await?
         .unwrap_or(0);
 
     // Only insert if settings do not exist

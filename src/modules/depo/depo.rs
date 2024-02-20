@@ -13,7 +13,7 @@ const SCHEMA_NAME: &str = "depo";
 
 use crate::{
     db_depo::{create_db, server_pool},
-    reset_db, Depo,
+    reset_db, reset_db_handler, Depo, InvalidBody,
 };
 
 async fn key_handler(depo: Depo) -> Result<Box<dyn Reply>, Rejection> {
@@ -29,7 +29,21 @@ fn with_depo(
     warp::any().map(move || depo.clone())
 }
 
-pub async fn make_routes() {
+// @todo Move this to Server. Server will receive routes from
+// the plugin then loop through the array of routes and add an then(operation_handler) to each.
+async fn operation_handler(depo: Depo, body: bytes::Bytes) -> Result<Box<dyn Reply>, Rejection> {
+    let body_string = std::str::from_utf8(&body)
+        .map_err(|_| warp::reject::custom(InvalidBody))?
+        .to_string();
+    let a = depo.handle_request_string(body_string).await;
+    let result: Box<dyn Reply> = Box::new(reply::with_status(a, StatusCode::OK));
+    Ok(result)
+}
+
+pub async fn make_routes(
+) -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone
+// impl warp::generic::Either<Filter<Extract = (Depo,), Error = std::convert::Infallible>> + Clone
+{
     // @fixme What's the return type?
     // @todo Each module will be have it's own path.
     // e.g. /api/depo/ for depo
@@ -65,10 +79,7 @@ pub async fn start_server() -> anyhow::Result<()> {
 
     info!(
         "{}",
-        Green.paint(format!(
-            "Starting Blockchain Commons Depository on {}:{}",
-            host, port
-        ))
+        Green.paint(format!("Starting Blockchain Commons Depository"))
     );
     info!(
         "{}",
@@ -76,4 +87,15 @@ pub async fn start_server() -> anyhow::Result<()> {
     );
 
     Ok(())
+}
+
+pub async fn reset_db_handler(schema_name: String) -> Result<Box<dyn Reply>, Rejection> {
+    match reset_db(&schema_name).await {
+        Ok(_) => Ok(Box::new(reply::with_status("Database reset successfully. A new private key has been assigned. Server must be restarted.", StatusCode::OK))),
+        Err(e) => {
+            let error_message = format!("Failed to reset database: {}", e);
+            let reply = reply::html(error_message);
+            Ok(Box::new(reply::with_status(reply, StatusCode::INTERNAL_SERVER_ERROR)))
+        },
+    }
 }

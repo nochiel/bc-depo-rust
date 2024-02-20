@@ -5,14 +5,14 @@ services:
     restart: always
     environment:
       - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=1
-    ports:
-      - 3306:3306
+    # ports:
+    #   - 3306:3306
   bcdepo:
     container_name: bcdepo
     build:
       context: .
     ports:
-      - 5332:5332
+      - 127.0.0.1:5332:5332
     volumes:
       - .:/depo
     command: cargo run
