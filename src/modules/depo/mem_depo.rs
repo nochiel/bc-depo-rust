@@ -9,10 +9,10 @@ use bc_envelope::prelude::*;
 use depo_api::receipt::Receipt;
 use tokio::sync::RwLock;
 
-use crate::modules::depo::{
-    depo_impl::DepoImpl, function::Depo, record::Record, user::User, CONTINUATION_EXPIRY_SECONDS,
-    MAX_DATA_SIZE,
-};
+use crate::modules::depo::{depo_impl::DepoImpl, function::Depo, record::Record};
+
+use crate::api::{CONTINUATION_EXPIRY_SECONDS, MAX_DATA_SIZE};
+use crate::user::User;
 
 struct Inner {
     id_to_user: HashMap<ARID, User>,

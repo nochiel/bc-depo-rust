@@ -7,9 +7,13 @@ use warp::{
     Filter,
 };
 
-use crate::{
+use crate::api::InvalidBody;
+use crate::modules::depo;
+use depo::reset_db_handler;
+use depo::{
     db_depo::{create_db, server_pool},
-    reset_db, reset_db_handler, Depo, InvalidBody,
+    function::Depo,
+    reset_db,
 };
 
 pub async fn start_server(schema_name: &str, port: u16) -> anyhow::Result<()> {

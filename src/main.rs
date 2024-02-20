@@ -1,8 +1,14 @@
-use depo::{setup_log, start_server};
-use log::error;
-use nu_ansi_term::Color::Red;
+mod api;
+mod logging;
+mod modules;
+mod recovery_continuation;
+mod server;
+mod user;
 
-use crate::modules::depo;
+use log::error;
+use logging::setup_log;
+use nu_ansi_term::Color::Red;
+use server::start_server;
 
 #[tokio::main]
 async fn main() {

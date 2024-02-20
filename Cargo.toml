@@ -1,15 +1,15 @@
 [package]
-name = "depo"
-version = "0.1.2"
+name = "bc-server"
+# version = "0.1.2"
 edition = "2021"
-description = "Server for secure and anonymous storage and retrieval of binary objects."
+description = "Lightweight re-useable server BlockchainCommons' tools and services."
 authors = ["Blockchain Commons"]
 keywords = ["cryptocurrency", "security", "key-management", "recovery", "server"]
 repository = "https://github.com/BlockchainCommons/bc-depo-rust"
 readme = "README.md"
 license = "BSD-2-Clause-Patent"
 categories = ["cryptography", "database", "web-programming::http-server"]
-documentation = "https://docs.rs/depo"
+# documentation = "https://docs.rs/depo"
 
 [dependencies]
 # bc-server-modules = { path = "modules", version = "*" }

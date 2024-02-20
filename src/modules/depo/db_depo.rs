@@ -8,10 +8,9 @@ use depo_api::receipt::Receipt;
 use mysql_async::{prelude::*, Pool, Row};
 use url::Url;
 
-use crate::{
-    depo_impl::DepoImpl, function::Depo, record::Record, user::User, CONTINUATION_EXPIRY_SECONDS,
-    MAX_DATA_SIZE,
-};
+// @todo Each module should have a cargo.toml
+use crate::modules::depo::{depo_impl::DepoImpl, function::Depo, record::Record};
+use crate::{api::CONTINUATION_EXPIRY_SECONDS, api::MAX_DATA_SIZE, user::User};
 
 const USER: &str = "root";
 const PASSWORD: Option<&str> = None;

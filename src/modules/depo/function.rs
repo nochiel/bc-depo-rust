@@ -19,9 +19,9 @@ use depo_api::{
 };
 use log::{error, info};
 
-use crate::modules::depo::{
-    depo_impl::DepoImpl, record::Record, recovery_continuation::RecoveryContinuation,
-};
+use crate::modules::depo::{depo_impl::DepoImpl, record::Record};
+
+use crate::recovery_continuation::RecoveryContinuation;
 
 #[derive(Clone)]
 pub struct Depo(Arc<dyn DepoImpl + Send + Sync>);

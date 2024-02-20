@@ -11,9 +11,11 @@ use warp::{
 
 const SCHEMA_NAME: &str = "depo";
 
-use crate::{
+use crate::api::InvalidBody;
+use crate::modules::depo::function::Depo;
+use crate::modules::depo::{
     db_depo::{create_db, server_pool},
-    reset_db, reset_db_handler, Depo, InvalidBody,
+    reset_db,
 };
 
 async fn key_handler(depo: Depo) -> Result<Box<dyn Reply>, Rejection> {
@@ -49,7 +51,7 @@ pub async fn make_routes(
     // e.g. /api/depo/ for depo
     // e.g. /api/timestamp/ for timestamp
 
-    let depo = Depo::new_db(SCHEMA_NAME).await;
+    let depo = Depo::new_db(SCHEMA_NAME).await.unwrap();
 
     let key_route = warp::path::end()
         .and(warp::get())
