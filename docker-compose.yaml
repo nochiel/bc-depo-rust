@@ -14,7 +14,7 @@ services:
     ports:
       - 127.0.0.1:5332:5332
     volumes:
-      - .:/depo
+      - .:/server
     command: cargo run
     environment:
       - DB_HOST="mariadb"

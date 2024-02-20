@@ -1,6 +1,6 @@
 [package]
 name = "bc-server"
-# version = "0.1.2"
+version = "0.0.1"
 edition = "2021"
 description = "Lightweight re-useable server BlockchainCommons' tools and services."
 authors = ["Blockchain Commons"]

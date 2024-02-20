@@ -1,7 +1,14 @@
+use warp;
 pub const MAX_DATA_SIZE: u32 = 1000;
 pub const CONTINUATION_EXPIRY_SECONDS: u32 = 60 * 60 * 24;
 
 // API
+pub mod types {
+    /*
+    pub type Routes =
+        impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone;
+    */
+}
 
 #[derive(Debug)]
 pub struct InvalidBody;

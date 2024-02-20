@@ -38,6 +38,13 @@ The following APIs are implemented:
 
 ## Bugs
 
-- During compilation you might have to wrestle with:
-  - `error[E0658]: use of unstable library feature 'stdsimd'`
-    - https://users.rust-lang.org/t/error-e0635-unknown-feature-stdsimd/106445/2
+- During compilation you might have to wrestle with: <https://users.rust-lang.org/t/error-e0635-unknown-feature-stdsimd/106445/2>
+
+```
+  Error[E0635]: unknown feature `stdsimd`
+  --> /home/nik/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.8.3/src/lib.rs:99:4
+```
+
+- To fix:
+  - `rustup default nightly`
+  - `rm Cargo.lock` (because it will have conflicting versions of ahash)
