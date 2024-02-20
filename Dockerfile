@@ -4,7 +4,7 @@ FROM rust:latest AS dependencies
 RUN apt update
 RUN apt install -y curl build-essential pkg-config openssl libssl-dev
 
-WORKDIR /depo
+WORKDIR /server
 # COPY . .
 
 FROM dependencies

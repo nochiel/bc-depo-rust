@@ -7,8 +7,8 @@ services:
       - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=1
     # ports:
     #   - 3306:3306
-  bcdepo:
-    container_name: bcdepo
+  bcserver:
+    container_name: bcserver
     build:
       context: .
     ports:
