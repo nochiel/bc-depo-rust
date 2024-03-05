@@ -23,12 +23,15 @@ To this end, we have the following requirements:
       - Check for and configure any required dependencies here.
 - In modules/mod.rs, change `mod example` to refer to the name of your module from the previous step.
 - Run `cargo add example-crate` and replace `example-crate` with the name(s) of the crate(s) that your module will use for its functionality.
+  - @todo Modules will be server crate `features` with all dependencies specified with the feature.
 
 ## Modules
 
 The following APIs are implemented:
 
 - bc-depository: secure storage and retrieval of binary objects.
+- torgap-demo:
+  - Torgap-demo allows a user to sign objects and serve them an onion service.
 
 ## References
 
