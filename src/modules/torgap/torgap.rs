@@ -1,26 +1,17 @@
 // Ref. https://github.com/BlockchainCommons/torgap-demo/blob/master/StackScript/torgap-demo.sh
+use log::info;
+use nu_ansi_term::Color::Green;
 use warp::{
+    filters::BoxedFilter,
     http::StatusCode,
     reject::Rejection,
     reply::{self, Reply},
     Filter,
 };
 
-pub async fn start_server() -> anyhow::Result<()> {
-    // require torgap-sig-cli-rust
-    // Ref. https://github.com/BlockchainCommons/torgap-sig-cli-rust
-    rsign("");
+pub const API_NAME: &str = "torgap";
 
-    // @todo Require opentimestamps-client
-    opentimestamp("");
-
-    // @todo Start the did-onion tor server.
-    start_tor();
-    Ok(())
-}
-
-pub async fn make_routes() -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection>
-{
+pub async fn make_routes() -> BoxedFilter<(impl Reply,)> {
     let verify_route = warp::path::end().and_then(verify_handler);
 
     let generate_key_route = warp::path::end().and_then(generate_key_handler);
@@ -31,7 +22,30 @@ pub async fn make_routes() -> impl warp::Filter<Extract = impl warp::Reply, Erro
         .or(generate_key_route)
         .or(generate_did_document_route);
 
-    routes
+    routes.boxed()
+}
+
+pub async fn start_server() -> anyhow::Result<()> {
+    // require torgap-sig-cli-rust
+    // Ref. https://github.com/BlockchainCommons/torgap-sig-cli-rust
+    /*
+    {
+        rsign("");
+
+        // @todo Require opentimestamps-client
+        opentimestamp("");
+
+        // @todo Start the did-onion tor server.
+        start_tor();
+    }
+    */
+
+    info!(
+        "{}",
+        Green.paint(format!("Starting Blockchain Commons Torgap Demo"))
+    );
+
+    Ok(())
 }
 
 async fn verify_handler() -> Result<Box<dyn Reply>, Rejection> {
@@ -135,7 +149,7 @@ fn rsign(command: &str) {
         !rsign.get_program().is_empty(),
         "{TORGAP_CLI_COMMAND} not found in path"
     );
-    if (!command.is_empty()) {
+    if !command.is_empty() {
         unimplemented!()
     }
 }
@@ -147,7 +161,7 @@ fn opentimestamp(command: &str) {
         !ots.get_program().is_empty(),
         "{OPENTIMESTAMP_CLIENT} not found in path"
     );
-    if (!command.is_empty()) {
+    if !command.is_empty() {
         unimplemented!()
     }
 }
